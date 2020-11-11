@@ -76,7 +76,8 @@ int main(int argc, char **argv) {
         std::left << std::setw(11) << "Create time" << '\t' << \
         std::left << std::setw(11) << "Create date" << '\t' << \
         std::left << std::setw(10) << "Attributes" << '\t' << \
-        std::left << std::setw(13) << "First cluster" << std::endl;
+        std::left << std::setw(13) << "First cluster" << \
+        std::left << std::setw(13) << "First sector" << std::endl;
 
 
     for (int i = 0; i < boot.max_file_number; i++) {
@@ -102,7 +103,8 @@ int main(int argc, char **argv) {
         std::left <<  std::setw(11) << std::dec << file.modify_time << '\t' << \
         std::left << std::setw(11) << file.modify_date << '\t' << \
         std::left << std::setw(10) << attributes[file.attribute] << '\t' << \
-        std::left << std::setw(10) << std::hex << file.first_cluster << '\t' << std::endl;
+        std::left << std::setw(10) << std::dec << file.first_cluster << '\t' << \
+        std::left << std::setw(10) << std::dec << 1256 + (file.first_cluster-2)*boot.sectors_per_cluster << '\t' << std::endl;
     }
 
     return EXIT_SUCCESS;
