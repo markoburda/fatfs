@@ -1,44 +1,72 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-
-// Remember to include ALL the necessary headers!
 #include <iostream>
-#include <boost/program_options.hpp>
+#include <fstream>
+#include <sstream>
+#include <memory.h>
 
-// By convention, C++ header files use the `.hpp` extension. `.h` is OK too.
-#include "arithmetic/arithmetic.hpp"
+
+int read_bytes(void *var, std::string &src, int offset, int n) {
+    memcpy(var, src.c_str() + offset, n);
+    return 0;
+}
+
+struct boot_sector{
+    uint16_t bytes_per_sector;
+    uint16_t sectors_per_cluster;
+    uint16_t reserved_area;
+    uint16_t num_of_fats;
+    uint16_t max_file_number;
+    uint16_t size_of_fat;
+    uint16_t signature_value;
+};
+
+struct file_struct {
+    char name[11];
+    uint16_t size_in_bytes;
+    uint16_t modification_time;
+    uint16_t modification_date;
+    uint16_t attribute;
+    uint16_t first_cluster;
+};
+
 
 int main(int argc, char **argv) {
-    int variable_a, variable_b;
+    if (argc < 2) {
+        std::cerr << "Using: readimage <path>" << std::endl;
+        return EXIT_FAILURE;
+    }
+    std::ifstream fin(argv[1], std::ifstream::binary);
+    std::ostringstream ostrm;
+    ostrm << fin.rdbuf();
+    std::string image(ostrm.str());
 
-    namespace po = boost::program_options;
+    boot_sector boot;
+    read_bytes(&boot.bytes_per_sector, image, 11, 2);
+    read_bytes(&boot.sectors_per_cluster, image, 13, 1);
+    read_bytes(&boot.reserved_area, image, 14, 2);
+    read_bytes(&boot.num_of_fats, image, 16, 1);
+    read_bytes(&boot.max_file_number, image, 17, 2);
+    read_bytes(&boot.size_of_fat, image, 22, 2);
+    read_bytes(&boot.signature_value, image, 510, 2);
+    
+    int offset = (boot.reserved_area + boot.num_of_fats * boot.size_of_fat) * boot.bytes_per_sector;
 
-    po::options_description visible("Supported options");
-    visible.add_options()
-            ("help,h", "Print this help message.");
+    for (int i = 0; i < boot.max_file_number; i++) {
+        file_struct file;
+        read_bytes(&file.name, image, offset, 11);
+       
 
-    po::options_description hidden("Hidden options");
-    hidden.add_options()
-            ("a", po::value<int>(&variable_a)->default_value(0), "Variable A.")
-            ("b", po::value<int>(&variable_b)->default_value(0), "Variable B.");
 
-    po::positional_options_description p;
-    p.add("a", 1);
-    p.add("b", 1);
 
-    po::options_description all("All options");
-    all.add(visible).add(hidden);
-
-    po::variables_map vm;
-    po::store(po::command_line_parser(argc, argv).options(all).positional(p).run(), vm);
-    po::notify(vm);
-
-    if (vm.count("help")) {
-        std::cout << "Usage:\n  add [a] [b]\n" << visible << std::endl;
-        return EXIT_SUCCESS;
     }
 
-    int result = arithmetic::add(variable_a, variable_b);
-    std::cout << result << std::endl;
+    std::cout << "Boot sector info" << std::endl;
+    std::cout << "Bytes per sector: " << boot.bytes_per_sector << std:: endl;
+    std::cout << "Sectors per cluster: " << boot.sectors_per_cluster << std:: endl;
+    std::cout << "Size of reserved area, in sectors: "<< boot.reserved_area << std:: endl;
+    std::cout << "Number of FATs: "<< boot.num_of_fats << std:: endl;
+    std::cout << "Maximum number of files in the root directory: " <<boot.max_file_number << std:: endl;
+    std::cout << "Size of each FAT, in sectors: " << boot.size_of_fat << std:: endl;
+    std::cout << "Signature value: 0x" << std::hex << boot.signature_value << std:: endl;
+
     return EXIT_SUCCESS;
 }
