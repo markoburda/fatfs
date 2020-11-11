@@ -24,6 +24,8 @@ struct boot_sector{
 struct file_struct {
     char name[11];
     uint16_t size_in_bytes;
+    uint16_t create_time;
+    uint16_t create_date;
     uint16_t modify_time;
     uint16_t modify_date;
     uint16_t attribute;
@@ -69,8 +71,6 @@ int main(int argc, char **argv) {
             {0x10, "dir"},
             {0x20, "archive"},
     };
-    uint16_t is_dir = 0x10;
-
     std::cout << std::left << std::setw(11) << "filename" << '\t' << \
         std::left << std::setw(9) << "File size" << '\t' << \
         std::left << std::setw(11) << "Create time" << '\t' << \
@@ -82,6 +82,8 @@ int main(int argc, char **argv) {
     for (int i = 0; i < boot.max_file_number; i++) {
         file_struct file {};
         read_bytes(&file.name, image, offset, 11);
+        if ((file.name == NULL)|| (file.name[0] == '\0'))
+            break;
         read_bytes(&file.attribute, image, offset + 11, 1);
         read_bytes(&file.modify_time, image, offset + 22, 2);
         read_bytes(&file.modify_date, image, offset + 24, 2);
