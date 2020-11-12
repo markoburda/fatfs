@@ -73,12 +73,11 @@ int main(int argc, char **argv) {
     };
     std::cout << std::left << std::setw(11) << "filename" << '\t' << \
         std::left << std::setw(9) << "File size" << '\t' << \
-        std::left << std::setw(11) << "Create time" << '\t' << \
-        std::left << std::setw(11) << "Create date" << '\t' << \
+        std::left << std::setw(11) << "Modify time" << '\t' << \
+        std::left << std::setw(11) << "Modify date" << '\t' << \
         std::left << std::setw(10) << "Attributes" << '\t' << \
         std::left << std::setw(13) << "First cluster" << \
         std::left << std::setw(13) << "First sector" << std::endl;
-
 
     for (int i = 0; i < boot.max_file_number; i++) {
         file_struct file {};
@@ -97,14 +96,46 @@ int main(int argc, char **argv) {
         } else {
             size << file.size_in_bytes;
         }
-
+        uint16_t day_b = file.modify_date & 0b11111;
+        uint16_t month_b = file.modify_date >> 5 & 0b1111;
+        uint16_t year_b = (file.modify_date >> 9 & 0b1111111) + 1980;
+        uint16_t hour_b = file.modify_time >> 11 & 0b11111;
+        uint16_t minute_b = file.modify_time >> 5 & 0b111111; 
+        uint16_t second_b = (file.modify_time & 0b11111) * 2;
+        std::ostringstream day, month, hour, minute, second, year;
+        year << year_b;
+        if (day_b < 10) 
+            day << "0" << day_b;
+        else
+            day << day_b;
+        if (month_b < 10) 
+            month << "0" << month_b;
+        else
+            month << month_b;
+        if (hour_b < 10) 
+            hour << "0" << hour_b;
+        else
+            hour << hour_b;
+        if (minute_b < 10) 
+            minute << "0" << minute_b;
+        else
+            minute << minute_b;
+        if (second_b < 10) 
+            second << "0" << second_b;
+        else
+            second << second_b;
+        uint16_t first_sector;
+        if (file.first_cluster == 0)
+            first_sector = 0;
+        else
+            first_sector = 1256 + (file.first_cluster-2)*boot.sectors_per_cluster;
         std::cout << std::left << std::setw(11) << file.name << '\t' << \
-        std::left <<  std::setw(9) << size.str() << '\t' << \
-        std::left <<  std::setw(11) << std::dec << file.modify_time << '\t' << \
-        std::left << std::setw(11) << file.modify_date << '\t' << \
+        std::left << std::setw(9) << size.str() << '\t' << \
+        std::left << std::setw(2) << hour.str() << ":" << std::setw(2) << minute.str() << ":" << std::setw(2) << second.str() << '\t' << \
+        std::left << std::setw(2) << day.str() << "-" << std::setw(2) << month.str() << "-" << std::setw(4) << year.str() << '\t' << \
         std::left << std::setw(10) << attributes[file.attribute] << '\t' << \
         std::left << std::setw(10) << std::dec << file.first_cluster << '\t' << \
-        std::left << std::setw(10) << std::dec << 1256 + (file.first_cluster-2)*boot.sectors_per_cluster << '\t' << std::endl;
+        std::left << std::setw(10) << std::dec << first_sector << '\t' << std::endl;
     }
 
     return EXIT_SUCCESS;
